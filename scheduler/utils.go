@@ -4,10 +4,8 @@ import (
 	log "github.com/golang/glog"
 	mesos "github.com/mesos/mesos-go/mesosproto"
 	util "github.com/mesos/mesos-go/mesosutil"
+	. "github.com/thecdcd/plaz/datalayer"
 )
-
-type PointTags map[string]string
-type PointFields map[string]interface{}
 
 func getOfferScalar(offer *mesos.Offer, name string) float64 {
 	resources := util.FilterResources(offer.Resources, func(res *mesos.Resource) bool {
@@ -40,12 +38,12 @@ func logOffers(offers []*mesos.Offer) {
 	}
 }
 
-func offerToPoint(offer *mesos.Offer) (PointTags, PointFields) {
-	tags := PointTags{
+func offerToPoint(offer *mesos.Offer) (DataTags, DataFields) {
+	tags := DataTags{
 		"slave": offer.SlaveId.GetValue(),
 		"hostname": *offer.Hostname,
 	}
-	fields := PointFields{
+	fields := DataFields{
 		"cpus": getOfferCpu(offer),
 		"mem": getOfferMem(offer),
 		"disk": getOfferDisk(offer),
@@ -53,17 +51,17 @@ func offerToPoint(offer *mesos.Offer) (PointTags, PointFields) {
 	return tags, fields
 }
 
-func execLostToPoint(exId *mesos.ExecutorID, slvId *mesos.SlaveID, exitCode int) (PointTags, PointFields) {
-	tags := PointTags{"slave": slvId.GetValue()}
-	fields := PointFields{
+func execLostToPoint(exId *mesos.ExecutorID, slvId *mesos.SlaveID, exitCode int) (DataTags, DataFields) {
+	tags := DataTags{"slave": slvId.GetValue()}
+	fields := DataFields{
 		"executor": exId.GetValue(),
 		"exitcode": exitCode,
 	}
 	return tags, fields
 }
 
-func slaveLostToPoint(slvId *mesos.SlaveID) (PointTags, PointFields) {
-	fields := PointFields{
+func slaveLostToPoint(slvId *mesos.SlaveID) (DataTags, DataFields) {
+	fields := DataFields{
 		"slave": slvId.GetValue(),
 	}
 	return nil, fields

@@ -11,6 +11,7 @@ import (
 	mesos "github.com/mesos/mesos-go/mesosproto"
 	sched "github.com/mesos/mesos-go/scheduler"
 	. "github.com/thecdcd/plaz/scheduler"
+	. "github.com/thecdcd/plaz/datalayer"
 )
 
 var (

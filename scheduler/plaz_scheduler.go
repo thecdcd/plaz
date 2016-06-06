@@ -4,22 +4,23 @@ import (
 	log "github.com/golang/glog"
 	mesos "github.com/mesos/mesos-go/mesosproto"
 	sched "github.com/mesos/mesos-go/scheduler"
+	. "github.com/thecdcd/plaz/datalayer"
 )
 
 type PlazScheduler struct {
-	influx *InfluxClient
+	client DataDriver
 }
 
 func NewPlazScheduler(conf *InfluxConfig) (*PlazScheduler, error) {
 	client := NewInfluxClient(conf)
 	return &PlazScheduler{
-		influx: client,
+		client: client,
 	}, nil
 }
 
 func (sched *PlazScheduler) Registered(driver sched.SchedulerDriver, frameworkId *mesos.FrameworkID, masterInfo *mesos.MasterInfo) {
 	log.Infoln("Scheduler Registered with Master ", masterInfo)
-	sched.influx.Connect()
+	sched.client.Connect()
 }
 
 func (sched *PlazScheduler) Reregistered(driver sched.SchedulerDriver, masterInfo *mesos.MasterInfo) {
@@ -28,30 +29,29 @@ func (sched *PlazScheduler) Reregistered(driver sched.SchedulerDriver, masterInf
 
 func (sched *PlazScheduler) Disconnected(sched.SchedulerDriver) {
 	log.Infoln("Scheduler Disconnected")
-	sched.influx.Close()
+	sched.client.Close()
 }
 
 func (sched *PlazScheduler) ResourceOffers(driver sched.SchedulerDriver, offers []*mesos.Offer) {
 	logOffers(offers)
 
-	bp, err := sched.influx.BatchPoint()
-	if err != nil {
-		log.Warningln("failed to create batch point")
-	}
-
-	for _, offer := range offers {
-		driver.DeclineOffer(offer.GetId(), &mesos.Filters{})
-		log.Infof("Declined offer %v from %v\n", offer.GetId().GetValue(), offer.SlaveId.GetValue())
-
-		tags, fields := offerToPoint(offer)
-		err := sched.influx.AddPoint(bp, "offer", tags, fields)
-		if err != nil {
-			log.Warningln("Failed to add point")
+	bp, err := sched.client.StartBatch()
+	if err == nil {
+		for _, offer := range offers {
+			driver.DeclineOffer(offer.GetId(), &mesos.Filters{})
+			tags, fields := offerToPoint(offer)
+			pt := sched.client.CreatePoint(OFFER_NAME, tags, fields)
+			err := sched.client.RecordPoint(bp, pt)
+			if err != nil {
+				log.Warningln("Failed to add point")
+			}
 		}
-	}
 
-	if bp != nil {
-		sched.influx.WriteBatch(bp)
+		sched.client.WriteBatch(bp)
+
+	} else {
+
+		log.Warningln("failed to create batch point")
 	}
 }
 
@@ -79,23 +79,24 @@ func (sched *PlazScheduler) FrameworkMessage(s sched.SchedulerDriver, exId *meso
 func (sched *PlazScheduler) SlaveLost(s sched.SchedulerDriver, id *mesos.SlaveID) {
 	log.Infof("Slave '%v' lost.\n", *id)
 	tags, fields := slaveLostToPoint(id)
-	addSinglePointBatch(sched.influx, tags, fields)
+	addSinglePointBatch(sched.client, SLAVE_LOST_NAME, tags, fields)
 }
 
 func (sched *PlazScheduler) ExecutorLost(s sched.SchedulerDriver, exId *mesos.ExecutorID, slvId *mesos.SlaveID, i int) {
 	log.Infof("Executor '%v' lost on slave '%v' with exit code: %v.\n", *exId, *slvId, i)
 	tags, fields := execLostToPoint(exId, slvId, i)
-	addSinglePointBatch(sched.influx, tags, fields)
+	addSinglePointBatch(sched.client, EXECUTOR_LOST_NAME, tags, fields)
 }
 
 func (sched *PlazScheduler) Error(driver sched.SchedulerDriver, err string) {
 	log.Infoln("Scheduler received error: ", err)
 }
 
-func addSinglePointBatch(client *InfluxClient, tags PointTags, fields PointFields) {
-	bp, err := client.BatchPoint()
+func addSinglePointBatch(client DataDriver, name string, tags DataTags, fields DataFields) {
+	bp, err := client.StartBatch()
 	if err == nil {
-		err = client.AddPoint(bp, "execlost", tags, fields)
+		pt := client.CreatePoint(name, tags, fields)
+		err = client.RecordPoint(bp, pt)
 		if err != nil {
 			log.Warningln("Failed to add point: ", err)
 		}
