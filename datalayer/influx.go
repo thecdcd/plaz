@@ -9,29 +9,13 @@ import (
 	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-type InfluxConfig struct {
-	address  string
-	username string
-	password string
-	database string
-}
-
 type InfluxClient struct {
-	config  *InfluxConfig
+	config  *DataConfig
 	client  influx.Client
 	batches map[string]influx.BatchPoints
 }
 
-func NewInfluxConfig(address string, database string, username string, password string) *InfluxConfig {
-	return &InfluxConfig{
-		database: database,
-		username: username,
-		password: password,
-		address: address,
-	}
-}
-
-func NewInfluxClient(config *InfluxConfig) *InfluxClient {
+func NewInfluxClient(config *DataConfig) *InfluxClient {
 	return &InfluxClient{
 		config: config,
 		batches: make(map[string]influx.BatchPoints),

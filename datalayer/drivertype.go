@@ -9,6 +9,13 @@ const (
 type DataFields      map[string]interface{}
 type DataTags        map[string]string
 
+type DataConfig struct {
+	address  string
+	username string
+	password string
+	database string
+}
+
 type DataDriver interface {
 	Connect() error
 
@@ -22,3 +29,13 @@ type DataDriver interface {
 
 	Close() error
 }
+
+func NewDataConfig(address string, database string, username string, password string) *DataConfig {
+	return &DataConfig{
+		database: database,
+		username: username,
+		password: password,
+		address: address,
+	}
+}
+
