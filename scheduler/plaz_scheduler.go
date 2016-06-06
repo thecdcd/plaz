@@ -11,10 +11,9 @@ type PlazScheduler struct {
 	client DataDriver
 }
 
-func NewPlazScheduler(conf *InfluxConfig) (*PlazScheduler, error) {
-	client := NewInfluxClient(conf)
+func NewPlazScheduler(driver DataDriver) (*PlazScheduler, error) {
 	return &PlazScheduler{
-		client: client,
+		client: driver,
 	}, nil
 }
 

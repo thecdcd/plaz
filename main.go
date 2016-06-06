@@ -28,9 +28,17 @@ func init() {
 }
 
 func main() {
-	influxConf := NewInfluxConfig((*influxAddress), (*influxDatabase), (*influxUsername), (*influxPassword))
+	dataConfig := NewDataConfig((*influxAddress), (*influxDatabase), (*influxUsername), (*influxPassword))
+	// we want the data driver handled here based on config
+	var dataDriver DataDriver
+	if ((*influxAddress) != "") {
+		dataDriver = NewInfluxClient(dataConfig)
+	} else {
+		log.Fatalln("Could not determine correct data driver to use")
+		os.Exit(-3)
+	}
 
-	scheduler, err := NewPlazScheduler(influxConf)
+	scheduler, err := NewPlazScheduler(dataDriver)
 	if err != nil {
 		log.Fatalf("Failed to create scheduler: ", err)
 		os.Exit(-2)
