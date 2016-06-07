@@ -12,6 +12,8 @@ import (
 	sched "github.com/mesos/mesos-go/scheduler"
 	. "github.com/thecdcd/plaz/scheduler"
 	. "github.com/thecdcd/plaz/datalayer"
+	"github.com/thecdcd/plaz/health"
+	"net/http"
 )
 
 var (
@@ -20,6 +22,7 @@ var (
 	influxDatabase = flag.String("influx-db", "mesos_resources", "InfluxDB database name to use for storing mesos events.")
 	influxPassword = flag.String("influx-password", "", "Password for InfluxDB instance")
 	influxUsername = flag.String("influx-username", "", "Username for InfluxDB instance")
+	webPort = flag.String("web-port", "8080", "Port to use for HTTP health check listener.")
 	master = flag.String("master", "127.0.0.1:5050", "Master address <ip:port>")
 )
 
@@ -64,6 +67,14 @@ func main() {
 		log.Fatalf("Unable to create SchedulerDriver: ", err.Error())
 		os.Exit(-3)
 	}
+
+	// start health check
+	healthMutex := http.NewServeMux()
+	healthMutex.HandleFunc("/health", health.HealthCheckHandler)
+	go func() {
+		log.Infoln("Starting health check service on port", (*webPort))
+		http.ListenAndServe(":" + (*webPort), healthMutex)
+	}()
 
 	if stat, err := driver.Run(); err != nil {
 		log.Fatalf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
