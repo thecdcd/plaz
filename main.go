@@ -18,11 +18,11 @@ import (
 )
 
 const (
-	FRAMEWORK_NAME = "plaz"
-	FRAMEWORK_USER = ""
-	ERR_INVALID_DRIVER = -2
-	ERR_SCHEDULE_CREATE = -3
-	ERR_SCHEDULE_STOP = -4
+	frameworkName = "plaz"
+	frameworkUser = ""
+	errInvalidDriver = -2
+	errSchedulerCreation = -3
+	errSchedulerStopped = -4
 )
 
 var (
@@ -46,16 +46,16 @@ func main() {
 	if ((*influxAddress) != "") {
 		dataDriver = NewInfluxClient(dataConfig)
 	} else {
-		log.Fatalln("Could not determine correct data driver to use")
-		os.Exit(ERR_INVALID_DRIVER)
+		log.Errorln("Could not determine correct data driver to use")
+		os.Exit(errInvalidDriver)
 	}
 
 	scheduler := NewPlazScheduler(dataDriver)
 
 	// framework
 	fwinfo := &mesos.FrameworkInfo{
-		User: proto.String(FRAMEWORK_USER), // mesos-go will fill this in
-		Name: proto.String(FRAMEWORK_NAME),
+		User: proto.String(frameworkUser), // mesos-go will fill this in
+		Name: proto.String(frameworkName),
 	}
 
 	// scheduler driver
@@ -85,12 +85,12 @@ func main() {
 		driver, err := sched.NewMesosSchedulerDriver(config)
 		if err != nil {
 			log.Errorf("Unable to create SchedulerDriver: ", err.Error())
-			os.Exit(ERR_SCHEDULE_CREATE)
+			os.Exit(errSchedulerCreation)
 		}
 
 		if stat, err := driver.Run(); err != nil {
 			log.Errorf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
-			os.Exit(ERR_SCHEDULE_STOP)
+			os.Exit(errSchedulerStopped)
 		}
 		wg.Done()
 	}()
