@@ -14,6 +14,11 @@ import (
 	. "github.com/thecdcd/plaz/datalayer"
 	"github.com/thecdcd/plaz/health"
 	"net/http"
+	"sync"
+)
+
+const (
+	FRAMEWORK_NAME = "plaz"
 )
 
 var (
@@ -50,7 +55,7 @@ func main() {
 	// framework
 	fwinfo := &mesos.FrameworkInfo{
 		User: proto.String(""), // mesos-go will fill this in
-		Name: proto.String("plaz"),
+		Name: proto.String(FRAMEWORK_NAME),
 	}
 
 	// scheduler driver
@@ -62,23 +67,34 @@ func main() {
 		BindingAddress: parseIP(*address),
 	}
 
-	driver, err := sched.NewMesosSchedulerDriver(config)
-	if err != nil {
-		log.Fatalf("Unable to create SchedulerDriver: ", err.Error())
-		os.Exit(-3)
-	}
+	wg := &sync.WaitGroup{}
 
-	// start health check
-	healthMutex := http.NewServeMux()
-	healthMutex.HandleFunc("/health", health.HealthCheckHandler)
+	wg.Add(1)
 	go func() {
+		// start health check
+		healthMutex := http.NewServeMux()
+		healthMutex.HandleFunc("/health", health.HealthCheckHandler)
 		log.Infoln("Starting health check service on port", (*webPort))
 		http.ListenAndServe(":" + (*webPort), healthMutex)
+		log.Fatalf("Health check service shutdown.")
+		wg.Done()
 	}()
 
-	if stat, err := driver.Run(); err != nil {
-		log.Fatalf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
-	}
+	wg.Add(1)
+	go func() {
+		driver, err := sched.NewMesosSchedulerDriver(config)
+		if err != nil {
+			log.Fatalf("Unable to create SchedulerDriver: ", err.Error())
+			os.Exit(-3)
+		}
+
+		if stat, err := driver.Run(); err != nil {
+			log.Fatalf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func parseIP(address string) net.IP {
