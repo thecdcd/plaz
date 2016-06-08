@@ -19,6 +19,7 @@ import (
 
 const (
 	FRAMEWORK_NAME = "plaz"
+	FRAMEWORK_USER = ""
 )
 
 var (
@@ -54,7 +55,7 @@ func main() {
 
 	// framework
 	fwinfo := &mesos.FrameworkInfo{
-		User: proto.String(""), // mesos-go will fill this in
+		User: proto.String(FRAMEWORK_USER), // mesos-go will fill this in
 		Name: proto.String(FRAMEWORK_NAME),
 	}
 
