@@ -20,6 +20,9 @@ import (
 const (
 	FRAMEWORK_NAME = "plaz"
 	FRAMEWORK_USER = ""
+	ERR_INVALID_DRIVER = -2
+	ERR_SCHEDULE_CREATE = -3
+	ERR_SCHEDULE_STOP = -4
 )
 
 var (
@@ -44,14 +47,10 @@ func main() {
 		dataDriver = NewInfluxClient(dataConfig)
 	} else {
 		log.Fatalln("Could not determine correct data driver to use")
-		os.Exit(-3)
+		os.Exit(ERR_INVALID_DRIVER)
 	}
 
-	scheduler, err := NewPlazScheduler(dataDriver)
-	if err != nil {
-		log.Fatalf("Failed to create scheduler: ", err)
-		os.Exit(-2)
-	}
+	scheduler := NewPlazScheduler(dataDriver)
 
 	// framework
 	fwinfo := &mesos.FrameworkInfo{
@@ -85,12 +84,13 @@ func main() {
 	go func() {
 		driver, err := sched.NewMesosSchedulerDriver(config)
 		if err != nil {
-			log.Fatalf("Unable to create SchedulerDriver: ", err.Error())
-			os.Exit(-3)
+			log.Errorf("Unable to create SchedulerDriver: ", err.Error())
+			os.Exit(ERR_SCHEDULE_CREATE)
 		}
 
 		if stat, err := driver.Run(); err != nil {
-			log.Fatalf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
+			log.Errorf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
+			os.Exit(ERR_SCHEDULE_STOP)
 		}
 		wg.Done()
 	}()

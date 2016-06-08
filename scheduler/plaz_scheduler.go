@@ -11,10 +11,10 @@ type PlazScheduler struct {
 	client DataDriver
 }
 
-func NewPlazScheduler(driver DataDriver) (*PlazScheduler, error) {
+func NewPlazScheduler(driver DataDriver) *PlazScheduler {
 	return &PlazScheduler{
 		client: driver,
-	}, nil
+	}
 }
 
 func (sched *PlazScheduler) Registered(driver sched.SchedulerDriver, frameworkId *mesos.FrameworkID, masterInfo *mesos.MasterInfo) {
