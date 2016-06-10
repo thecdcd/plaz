@@ -28,6 +28,8 @@ type DataDriver interface {
 	WriteBatch(string) error
 
 	Close() error
+
+	Ping() bool
 }
 
 func NewDataConfig(address string, database string, username string, password string) *DataConfig {

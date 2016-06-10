@@ -101,6 +101,11 @@ func (client *InfluxClient) Close() error {
 	return client.client.Close()
 }
 
+func (client *InfluxClient) Ping() bool {
+	_, _, err := client.client.Ping(5)
+	return err == nil
+}
+
 func (client *InfluxClient) CreatePoint(name string, tags DataTags, fields DataFields) DataFields {
 	return DataFields{
 		"name": name,
