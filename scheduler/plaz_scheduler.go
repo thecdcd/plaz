@@ -21,8 +21,6 @@ func NewPlazScheduler(driver DataDriver) *PlazScheduler {
 
 func (sched *PlazScheduler) Registered(driver sched.SchedulerDriver, frameworkId *mesos.FrameworkID, masterInfo *mesos.MasterInfo) {
 	log.Infoln("Scheduler Registered with Master ", masterInfo)
-	sched.client.Connect()
-	health.HealthStatus.Data = true
 	health.HealthStatus.Scheduler = true
 }
 
@@ -33,7 +31,6 @@ func (sched *PlazScheduler) Reregistered(driver sched.SchedulerDriver, masterInf
 
 func (sched *PlazScheduler) Disconnected(sched.SchedulerDriver) {
 	log.Infoln("Scheduler Disconnected")
-	sched.client.Close()
 	health.HealthStatus.Scheduler = false
 }
 

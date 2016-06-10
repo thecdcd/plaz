@@ -15,6 +15,8 @@ import (
 	"github.com/thecdcd/plaz/health"
 	"net/http"
 	"sync"
+	"time"
+	"fmt"
 )
 
 const (
@@ -79,6 +81,17 @@ func main() {
 		http.ListenAndServe(":" + (*webPort), healthMutex)
 		health.HealthStatus.Api = false
 		log.Fatalf("Health check service shutdown.")
+		wg.Done()
+	}()
+
+	dataPingTicker := time.NewTicker(time.Second * 5)
+	wg.Add(1)
+	go func() {
+		dataDriver.Connect()
+		health.HealthStatus.Data = true
+		for range dataPingTicker.C {
+			health.HealthStatus.Data = dataDriver.Ping()
+		}
 		wg.Done()
 	}()
 
