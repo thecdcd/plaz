@@ -6,6 +6,7 @@ import (
 	sched "github.com/mesos/mesos-go/scheduler"
 	util "github.com/mesos/mesos-go/mesosutil"
 	. "github.com/thecdcd/plaz/datalayer"
+	"github.com/thecdcd/plaz/health"
 )
 
 type PlazScheduler struct {
@@ -21,15 +22,19 @@ func NewPlazScheduler(driver DataDriver) *PlazScheduler {
 func (sched *PlazScheduler) Registered(driver sched.SchedulerDriver, frameworkId *mesos.FrameworkID, masterInfo *mesos.MasterInfo) {
 	log.Infoln("Scheduler Registered with Master ", masterInfo)
 	sched.client.Connect()
+	health.HealthStatus.Data = true
+	health.HealthStatus.Scheduler = true
 }
 
 func (sched *PlazScheduler) Reregistered(driver sched.SchedulerDriver, masterInfo *mesos.MasterInfo) {
 	log.Infoln("Scheduler Re-Registered with Master ", masterInfo)
+	health.HealthStatus.Scheduler = true
 }
 
 func (sched *PlazScheduler) Disconnected(sched.SchedulerDriver) {
 	log.Infoln("Scheduler Disconnected")
 	sched.client.Close()
+	health.HealthStatus.Scheduler = false
 }
 
 func (sched *PlazScheduler) ResourceOffers(driver sched.SchedulerDriver, offers []*mesos.Offer) {

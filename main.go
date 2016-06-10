@@ -75,7 +75,9 @@ func main() {
 		healthMutex := http.NewServeMux()
 		healthMutex.HandleFunc("/health", health.HealthCheckHandler)
 		log.Infoln("Starting health check service on port", (*webPort))
+		health.HealthStatus.Api = true
 		http.ListenAndServe(":" + (*webPort), healthMutex)
+		health.HealthStatus.Api = false
 		log.Fatalf("Health check service shutdown.")
 		wg.Done()
 	}()
@@ -89,6 +91,7 @@ func main() {
 		}
 
 		if stat, err := driver.Run(); err != nil {
+			health.HealthStatus.Scheduler = false
 			log.Errorf("Framework stopped with status %s and error: %s\n", stat.String(), err.Error())
 			os.Exit(errSchedulerStopped)
 		}
